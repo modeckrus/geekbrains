@@ -17,7 +17,6 @@ groups:
   - alert: Test Alert
     # Condition for alerting
     expr: operation_total{path="/alert"} > 0
-    for: 1m
     # Annotation - additional informational labels to store more information
     annotations:
       title: 'Test Alert Title'
