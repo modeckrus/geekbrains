@@ -30,12 +30,13 @@ type App struct {
 }
 
 func (a *App) ParseUserID(ctx context.Context, r *http.Request) (*uuid.UUID, error) {
-	span, _ := opentracing.StartSpanFromContextWithTracer(ctx, a.tracer, "parseUserID")
+	span, _ := opentracing.StartSpanFromContextWithTracer(ctx, a.tracer, "App.parseUserID")
 	defer span.Finish()
 	strUserID := chi.URLParam(r, "id")
 	if strUserID == "" {
 		return nil, nil
 	}
+	method := r.Method
 	userID, err := uuid.Parse(strUserID)
 	if err != nil {
 		a.logger.Debug(
@@ -44,6 +45,8 @@ func (a *App) ParseUserID(ctx context.Context, r *http.Request) (*uuid.UUID, err
 		)
 		span.LogFields(
 			log.Error(err),
+			log.String("userID", strUserID),
+			log.String("method", method),
 		)
 		return nil, err
 	}
@@ -51,7 +54,7 @@ func (a *App) ParseUserID(ctx context.Context, r *http.Request) (*uuid.UUID, err
 	return &userID, nil
 }
 func (a *App) UsersHandler(w http.ResponseWriter, r *http.Request) {
-	span, ctx := opentracing.StartSpanFromContextWithTracer(r.Context(), a.tracer, "usersHandler")
+	span, ctx := opentracing.StartSpanFromContextWithTracer(r.Context(), a.tracer, "App.UsersHandler")
 	defer span.Finish()
 	a.logger.Info("usersHandler called", zap.Field{Key: "method", String: r.Method, Type: zapcore.StringType})
 	users, err := a.repository.GetUsers(ctx)

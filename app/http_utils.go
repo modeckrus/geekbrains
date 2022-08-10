@@ -11,6 +11,7 @@ import (
 // Нужна для уменьшения дублирования кода и улучшения читаемости кода вызывающей
 // функции.
 func writeResponse(w http.ResponseWriter, status int, message string) {
+
 	w.WriteHeader(status)
 	_, _ = w.Write([]byte(message))
 	_, _ = w.Write([]byte("\n"))
