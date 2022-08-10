@@ -1,33 +1,70 @@
 package main
 
 import (
-	"geekbrains/middleware"
-	"net/http"
+	"context"
+	"fmt"
+	"geekbrains/app"
+	"io"
+	"log"
 
-	"github.com/gorilla/mux"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/opentracing/opentracing-go"
+	"github.com/uber/jaeger-client-go/config"
+	"go.uber.org/zap"
 )
 
+type zapWrapper struct {
+	logger *zap.Logger
+}
+
+// Error logs a message at error priority
+func (w *zapWrapper) Error(msg string) {
+	w.logger.Error(msg)
+}
+
+// Infof logs a message at info priority
+func (w *zapWrapper) Infof(msg string, args ...interface{}) {
+	w.logger.Sugar().Infof(msg, args...)
+}
+func initJaeger(service string, logger *zap.Logger) (opentracing.Tracer, io.Closer) {
+	cfg := &config.Configuration{
+		ServiceName: service,
+		Sampler: &config.SamplerConfig{
+			Type:  "const",
+			Param: 1,
+		},
+		Reporter: &config.ReporterConfig{
+			LogSpans: true,
+		},
+	}
+	tracer, closer, err := cfg.NewTracer(config.Logger(&zapWrapper{logger: logger}))
+	if err != nil {
+		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
+	}
+	return tracer, closer
+}
 func main() {
-	r := mux.NewRouter()
-
-	metricsMiddleware := middleware.NewMetricsMiddleware()
-
-	r.Handle("/metrics", promhttp.Handler())
-	r.HandleFunc("/alert", alertHandler).Methods(http.MethodGet)
-	r.HandleFunc("/simple", simpleHandler).Methods(http.MethodPost)
-
-	r.Use(metricsMiddleware.Metrics)
-
-	http.ListenAndServe(":8080", r)
-}
-
-func alertHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(200)
-	w.Write([]byte("Alert"))
-}
-
-func simpleHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(200)
-	w.Write([]byte("Simple"))
+	// Предустановленный конфиг. Можно выбрать
+	// NewProduction/NewDevelopment/NewExample или создать свой
+	// Production - уровень логгирования InfoLevel, формат вывода: json
+	// Development - уровень логгирования DebugLevel, формат вывода: console
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() { _ = logger.Sync() }()
+	// Трейсер
+	tracer, closer := initJaeger("example", logger)
+	defer closer.Close()
+	// можно установить глобальный логгер (но лучше не надо: используйте внедрение
+	// зависимостей где это возможно)
+	// undo := zap.ReplaceGlobals(logger)
+	// defer undo()
+	// zap.L().Info("replaced zap's global loggers")
+	a := app.App{}
+	if err := a.Init(context.Background(), logger, tracer); err != nil {
+		log.Fatal(err)
+	}
+	if err := a.Serve(); err != nil {
+		log.Fatal(err)
+	}
 }
