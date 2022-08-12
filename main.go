@@ -1,33 +1,34 @@
 package main
 
 import (
-	"geekbrains/middleware"
-	"net/http"
+	"context"
+	"geekbrains/app"
+	"log"
 
-	"github.com/gorilla/mux"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.uber.org/zap"
 )
 
 func main() {
-	r := mux.NewRouter()
-
-	metricsMiddleware := middleware.NewMetricsMiddleware()
-
-	r.Handle("/metrics", promhttp.Handler())
-	r.HandleFunc("/alert", alertHandler).Methods(http.MethodGet)
-	r.HandleFunc("/simple", simpleHandler).Methods(http.MethodPost)
-
-	r.Use(metricsMiddleware.Metrics)
-
-	http.ListenAndServe(":8080", r)
-}
-
-func alertHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(200)
-	w.Write([]byte("Alert"))
-}
-
-func simpleHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(200)
-	w.Write([]byte("Simple"))
+	// Предустановленный конфиг. Можно выбрать
+	//NewProduction/NewDevelopment/NewExample или создать свой
+	// Production - уровень логгирования InfoLevel, формат вывода: json
+	// Development - уровень логгирования DebugLevel, формат вывода: console
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() { _ = logger.Sync() }()
+	// можно установить глобальный логгер (но лучше не надо: используйте внедрение
+	//зависимостей где это возможно)
+	// undo := zap.ReplaceGlobals(logger)
+	// defer undo()
+	//
+	// zap.L().Info("replaced zap's global loggers")
+	a := app.App{}
+	if err := a.Init(context.Background(), logger); err != nil {
+		log.Fatal(err)
+	}
+	if err := a.Serve(); err != nil {
+		log.Fatal(err)
+	}
 }
