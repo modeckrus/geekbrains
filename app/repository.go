@@ -60,6 +60,8 @@ type repository struct {
 	pool *pgxpool.Pool
 }
 
+//TODO: сделать на ElasticSearch
+//TODO: сделать полнотекстовый поиск для пользователей и статей пользователя
 func (r *repository) InitSchema(ctx context.Context) error {
 	_, err := r.pool.Exec(ctx, DDL)
 	return err

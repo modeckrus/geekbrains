@@ -8,6 +8,9 @@ import (
 	"go.uber.org/zap"
 )
 
+//TODO: сделать на ElasticSearch
+//TODO: сделать полнотекстовый поиск для пользователей и статей пользователя
+
 func main() {
 	// Предустановленный конфиг. Можно выбрать
 	//NewProduction/NewDevelopment/NewExample или создать свой

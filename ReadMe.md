@@ -6,5 +6,15 @@ sudo apt install graphviz
 
 https://linux-notes.org/ustanovka-wrk-v-unix-linux/
 
+#Profiling
+go tool pprof -http=localhost:37304 http://localhost:9000/debug/pprof/profile?seconds=5
+go tool pprof -http=localhost:37304 http://localhost:9000/debug/pprof/heap?seconds=5
+
+
 wrk 'http://localhost:9000/users/b29f95a2-499a-4079-97f5-ff55c3854fcb/articles'
-go tool pprof http://localhost:9000/debug/pprof/profile?seconds=10
+
+
+#Tracing
+
+wget -O trace.out http://localhost:9000/debug/pprof/trace?seconds=5
+go tool trace trace.out

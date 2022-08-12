@@ -119,10 +119,15 @@ func (a *App) Init(ctx context.Context, logger *zap.Logger) error {
 }
 func (a *App) Serve() error {
 	r := chi.NewRouter()
+	//TODO: сделать полнотекстовым
 	r.Get("/users", http.HandlerFunc(a.usersHandler))
 	r.Get("/users/{id}", http.HandlerFunc(a.userHandler))
+	//TODO: сделать полнотекстовым
 	r.Get("/users/{id}/articles", http.HandlerFunc(a.userArticlesHandler))
 	r.Get("/panic", http.HandlerFunc(a.panicHandler))
+
+	//TODO: сделать запрос на создание пользователя
+	//TODO: сделать запрос на создание статьи
 	// profiling
 	r.Mount("/debug", Profiler())
 	return http.ListenAndServe("0.0.0.0:9000", r)
